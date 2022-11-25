@@ -1,0 +1,416 @@
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sizer/sizer.dart';
+import 'package:wms_deal_ncs/model/pick/pick_model.dart';
+import 'package:wms_deal_ncs/pages/pick/pick_list_detail.dart';
+import 'package:wms_deal_ncs/provider/pick/pick_provider.dart';
+import 'package:wms_deal_ncs/theme.dart';
+import 'package:intl/intl.dart';
+
+class PickPage extends StatefulWidget {
+  const PickPage({Key? key}) : super(key: key);
+
+  @override
+  State<PickPage> createState() => _PickPageState();
+}
+
+class _PickPageState extends State<PickPage> with TickerProviderStateMixin {
+  final format = DateFormat("dd-MM-yyyy");
+  String dateOrder = DateFormat("yyyy-MM-dd").format(DateTime.now()).toString();
+  List pickdata = [];
+  List tenant = [];
+  List warehouse = [];
+  bool isLoading = false;
+  String tenantId = '';
+  String orderId = "";
+  late TabController _tabController;
+  int idx = 0;
+  // String? houseCode;
+  String? houseCode;
+  String? userId;
+
+  @override
+  void initState() {
+    validate().whenComplete(() => null);
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    super.initState();
+  }
+
+  Future validate() async {
+    final SharedPreferences session = await SharedPreferences.getInstance();
+    var housecd = session.getString('houseCode');
+    var user = session.getString('userId');
+    setState(() {
+      houseCode = housecd!;
+      userId = user!;
+    });
+    loadData().whenComplete(() => null);
+  }
+
+  Future loadData() async {
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      List<PickModel> data = await PickProvider().getpicks(
+        apikey: keyApi,
+        orderId: "",
+        houseCode: houseCode.toString(),
+        dateOrder: dateOrder,
+        tenantId: "",
+      );
+      setState(() {
+        pickdata = data;
+      });
+    } catch (e) {
+      print('gagal');
+    }
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    TextEditingController orderIdCOntroller =
+        TextEditingController(text: orderId);
+
+    Future listOrder() async {
+      try {
+        List<PickModel> data = await PickProvider().getpicks(
+          apikey: keyApi,
+          orderId: "",
+          houseCode: houseCode.toString(),
+          dateOrder: dateOrder,
+          tenantId: "",
+        );
+        setState(() {
+          orderId = orderIdCOntroller.text;
+          pickdata = data;
+        });
+      } catch (e) {
+        print('gagal');
+      }
+    }
+
+    Future listPick() async {
+      try {
+        List<PickModel> data = await PickProvider().getlistpicks(
+          apikey: keyApi,
+          orderId: "",
+          houseCode: houseCode.toString(),
+          dateOrder: dateOrder,
+          tenantId: "",
+          userId: userId.toString(),
+        );
+        setState(() {
+          orderId = orderIdCOntroller.text;
+          pickdata = data;
+        });
+      } catch (e) {
+        print('gagal');
+      }
+    }
+
+    Future doneListPick() async {
+      try {
+        List<PickModel> data = await PickProvider().getpickDone(
+          apikey: keyApi,
+          orderId: "",
+          houseCode: houseCode.toString(),
+          dateOrder: dateOrder,
+          tenantId: "",
+          userId: userId.toString(),
+        );
+        setState(() {
+          orderId = orderIdCOntroller.text;
+          pickdata = data;
+        });
+      } catch (e) {
+        print('gagal');
+      }
+    }
+
+    handleListOrder(id) async {
+      setState(() {
+        isLoading = true;
+      });
+      try {
+        List<PickModel> data = await PickProvider().saveOrderPicks(
+          apikey: keyApi,
+          orderId: id,
+          houseCode: houseCode.toString(),
+          dateOrder: dateOrder,
+          tenantId: "",
+          userId: userId.toString(),
+        );
+        setState(() {
+          orderId = orderIdCOntroller.text;
+          pickdata = data;
+        });
+      } catch (e) {
+        print('gagal');
+      }
+      setState(() {
+        isLoading = false;
+      });
+    }
+
+    Widget dataNotfound() {
+      return Center(
+        child: Container(
+          padding: EdgeInsets.only(
+            top: 10.sp,
+          ),
+          margin: EdgeInsets.only(left: 19.sp, right: 19.sp),
+          child: Text(
+            "Data Tidak Di Temukan",
+            style: primaryTextStyle.copyWith(
+                fontSize: 15.sp, fontWeight: semiBold),
+          ),
+        ),
+      );
+    }
+
+    Widget loading() {
+      return Center(
+        child: Container(
+          padding: EdgeInsets.only(
+            top: 10.sp,
+          ),
+          margin: EdgeInsets.only(left: 19.sp, right: 19.sp),
+          child: Text(
+            "Loading",
+            style: primaryTextStyle.copyWith(
+                fontSize: 15.sp, fontWeight: semiBold),
+          ),
+        ),
+      );
+    }
+
+    Widget listDataPick() {
+      return Container(
+          margin: EdgeInsets.only(
+            top: 10.sp,
+          ),
+          child: pickdata.isEmpty
+              ? dataNotfound()
+              : Column(
+                  children: pickdata
+                      .map(
+                        (data) => GestureDetector(
+                          onTap: () {
+                            if (idx == 0) {
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: Text(
+                                    'Pick ?',
+                                    style: TextStyle(fontSize: 12.sp),
+                                  ),
+                                  content: Text(
+                                    'Apakah Anda Yakin Ingin Mengambil Order ini ???',
+                                    style: TextStyle(fontSize: 13.sp),
+                                  ),
+                                  actions: <Widget>[
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(false),
+                                      child: Text(
+                                        'Tidak',
+                                        style: TextStyle(fontSize: 12.sp),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop(false);
+                                        handleListOrder(data.orderId);
+                                      },
+                                      child: Text(
+                                        'Ya',
+                                        style: TextStyle(fontSize: 12.sp),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            } else {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PickListDetail(
+                                    data,
+                                    '',
+                                    idx,
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: backgroundColor2,
+                            ),
+                            padding: EdgeInsets.all(10.sp),
+                            child: Card(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8.sp),
+                              ),
+                              // margin: EdgeInsets.only(top: 18.sp),
+                              elevation: 2,
+                              child: Container(
+                                padding: EdgeInsets.only(left: 5.sp),
+                                decoration: BoxDecoration(
+                                  color: backgroundColor1,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: EdgeInsets.only(
+                                        left: 5.sp,
+                                        right: 5.sp,
+                                        top: 5.sp,
+                                        bottom: 5.sp,
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Order : ${data.orderId}',
+                                            style: primaryTextStyle.copyWith(
+                                              fontSize: 10.sp,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Container(
+                                        padding: EdgeInsets.only(
+                                          left: 5.sp,
+                                          right: 5.sp,
+                                          top: 5.sp,
+                                          bottom: 5.sp,
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              data.dateOrder.substring(0, 10),
+                                              style: primaryTextStyle.copyWith(
+                                                fontSize: 9.sp,
+                                              ),
+                                            ),
+                                            SizedBox(
+                                              height: 25.sp,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ));
+    }
+
+    return Sizer(builder: (context, orientation, deviceType) {
+      return WillPopScope(
+        onWillPop: () async {
+          Navigator.of(context, rootNavigator: false).popAndPushNamed('/home');
+          return true;
+        },
+        child: Scaffold(
+          backgroundColor: backgroundColor1,
+          resizeToAvoidBottomInset: false,
+          appBar: AppBar(
+            leading: IconButton(
+                icon: const Icon(
+                  Icons.arrow_back,
+                  color: Colors.black,
+                ),
+                onPressed: () {
+                  Navigator.pushNamed(context, '/home');
+                }),
+            backgroundColor: backgroundColor2,
+            centerTitle: true,
+            title: Text(
+              'Pick Page',
+              style: primaryTextStyle.copyWith(
+                fontSize: 14.sp,
+              ),
+            ),
+            elevation: 0,
+            bottom: TabBar(
+              onTap: (index) async {
+                idx = index;
+                setState(() {
+                  isLoading = true;
+                });
+
+                if (index == 0) {
+                  listOrder();
+                } else if (index == 1) {
+                  listPick();
+                } else {
+                  doneListPick();
+                }
+                setState(() {
+                  isLoading = false;
+                });
+              },
+              controller: _tabController,
+              labelStyle: primaryTextStyle.copyWith(fontSize: 12.sp),
+              labelColor: Colors.black,
+              tabs: [
+                Tab(
+                  child: Center(
+                    child: Text(
+                      'List Order',
+                      style: primaryTextStyle.copyWith(
+                        fontSize: 12.sp,
+                      ),
+                    ),
+                  ),
+                ),
+                Tab(
+                  child: Text(
+                    'List Pick',
+                    style: primaryTextStyle.copyWith(
+                      fontSize: 12.sp,
+                    ),
+                  ),
+                ),
+                Tab(
+                  child: Text(
+                    'Done',
+                    style: primaryTextStyle.copyWith(
+                      fontSize: 12.sp,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          body: TabBarView(
+            physics: const NeverScrollableScrollPhysics(),
+            controller: _tabController,
+            children: [
+              isLoading == true ? loading() : listDataPick(),
+              isLoading == true ? loading() : listDataPick(),
+              isLoading == true ? loading() : listDataPick(),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+}

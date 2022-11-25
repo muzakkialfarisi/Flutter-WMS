@@ -1,0 +1,15 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\lib",
+    "\\lib\\model",
+    "\\lib\\model\\delivery_order",
+    "\\lib\\pages",
+    "\\lib\\pages\\delivery order",
+    "\\lib\\provider",
+    "\\lib\\provider\\delivery_order",
+    "\\windows",
+    "\\windows\\flutter"
+  ],
+  "PreviewInSolutionExplorer": false
+}
